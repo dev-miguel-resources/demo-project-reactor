@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 @SpringBootApplication
 public class DemoApplication implements CommandLineRunner {
@@ -148,6 +149,115 @@ public class DemoApplication implements CommandLineRunner {
 		fx1.take(1).subscribe(log::info);
 	}
 
+	public void m11DefaultIfEmpty() {
+		foods = new ArrayList<>();
+		Flux<String> fx1 = Flux.fromIterable(foods);
+		fx1.map(e -> "Food: " + e)
+				.defaultIfEmpty("EMPTY FLUX")
+				.subscribe(log::info);
+	}
+
+	public void m12Error() {
+		Flux<String> fx1 = Flux.fromIterable(foods);
+
+		// onErrorMap(e -> new Exception(e.getMessage())).subscribe();
+		fx1.doOnNext(e -> {
+			throw new ArithmeticException("BAD OPERATION");
+		}).onErrorReturn("ERROR TRY AGAIN")
+				.subscribe(log::info);
+	}
+
+	public void m13Threads() {
+		final Mono<String> mono = Mono.just("hello world");
+
+		// nuevo thread: Thread-1
+		Thread t = new Thread(() -> mono.map(msg -> msg + "thread : ")
+				.subscribe(v -> System.out.println(v + Thread.currentThread().getName())));
+
+		// main
+		System.out.println(Thread.currentThread().getName());
+
+		// inicializa el hilo t
+		t.start();
+
+	}
+
+	public void m14PublishOn() {
+		Flux.range(1, 2)
+				// Resultados desde Main
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread: " + Thread.currentThread().getName());
+					return x;
+				})
+				// Resultados desde New-1
+				.publishOn(Schedulers.newSingle("new"))
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread: " + Thread.currentThread().getName());
+					return x;
+				})
+				// Resultados desde Bounded-elastic-1
+				.publishOn(Schedulers.boundedElastic())
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread: " + Thread.currentThread().getName());
+					return x;
+				}).subscribe();
+	}
+
+	public void m16SubscribeOn() {
+		Flux.range(1, 2)
+				// Inmediate utilizaría el hilo Main
+				.subscribeOn(Schedulers.immediate())
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread: " + Thread.currentThread().getName());
+					return x;
+				})
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread: " + Thread.currentThread().getName());
+					return x;
+				})
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread: " + Thread.currentThread().getName());
+					return x;
+				}).subscribe();
+	}
+
+	public void m16PublishSubscribeOn() {
+		Flux.range(1, 2)
+				// New-1
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread: " + Thread.currentThread().getName());
+					return x;
+				})
+				// New-1
+				.subscribeOn(Schedulers.newSingle("new"))
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread: " + Thread.currentThread().getName());
+					return x;
+				})
+				// New-1
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread: " + Thread.currentThread().getName());
+					return x;
+				})
+				.subscribeOn(Schedulers.immediate())
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread: " + Thread.currentThread().getName());
+					return x;
+				})
+				// Bounded
+				.publishOn(Schedulers.boundedElastic())
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread: " + Thread.currentThread().getName());
+					return x;
+				})
+				// Bounded
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread: " + Thread.currentThread().getName());
+					return x;
+				}).subscribe();
+
+	}
+
 	@Override
 	public void run(String... args) throws Exception {
 		// createMono();
@@ -164,7 +274,13 @@ public class DemoApplication implements CommandLineRunner {
 		// m7Merge();
 		// m8Filter();
 		// m9TakeLast();
-		m10Take();
+		// m10Take();
+		// m11DefaultIfEmpty();
+		// m12Error();
+		// m13Threads();
+		// m14PublishOn();
+		// m15SubscribeOn();
+		m16PublishSubscribeOn();
 	}
 
 }
