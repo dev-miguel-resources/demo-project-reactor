@@ -258,6 +258,18 @@ public class DemoApplication implements CommandLineRunner {
 
 	}
 
+	public void m17runOn() {
+		Flux.range(1, 32)
+				// Habilitar 16 "rails" -> canales de procesamiento (hilos)
+				.parallel(16) // acá convertimos a parallel Flux
+				.runOn(Schedulers.parallel()) // resolvemos el proceso en paralelo
+				.map(x -> {
+					log.info("Valor : " + x + " | Thread : " + Thread.currentThread().getName());
+					return x;
+				})
+				.subscribe();
+	}
+
 	@Override
 	public void run(String... args) throws Exception {
 		// createMono();
@@ -280,7 +292,8 @@ public class DemoApplication implements CommandLineRunner {
 		// m13Threads();
 		// m14PublishOn();
 		// m15SubscribeOn();
-		m16PublishSubscribeOn();
+		// m16PublishSubscribeOn();
+		m17runOn();
 	}
 
 }
